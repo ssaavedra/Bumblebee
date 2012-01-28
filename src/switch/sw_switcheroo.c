@@ -87,10 +87,10 @@ int switcheroo_is_available(struct switch_info info) {
             " explicitly selected in the configuration.\n");
     return 0;
   }
-  if (strcmp("nouveau", info.driver)) {
-    /* switcheroo cannot be used with drivers other than nouveau */
+  if (strcmp("nouveau", info.driver) && strcmp("radeon", info.driver)) {
+    /* switcheroo cannot be used with drivers other than nouveau and radeon */
     bb_log(LOG_WARNING, "vga_switcheroo can only be used with the nouveau"
-            " driver, skipping method.\n");
+            " and radeon drivers, skipping method.\n");
     return 0;
   }
   return 1;
