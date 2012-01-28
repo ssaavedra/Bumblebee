@@ -393,15 +393,34 @@ int main(int argc, char* argv[]) {
   init_config(argc, argv);
   bbconfig_parse_opts(argc, argv, PARSE_STAGE_PRECONF);
 
-  pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_NVIDIA);
+  pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_NVIDIA, 0);
+  if (pci_bus_id_discrete) {
+    bb_status.card_type = CARD_NVIDIA;
+  } else {
+    pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_ATI, 0);
+    if (pci_bus_id_discrete) {
+      bb_status.card_type = CARD_ATI;
+    }
+  }
   if (!pci_bus_id_discrete) {
-    bb_log(LOG_ERR, "No nVidia graphics card found, quitting.\n");
+    bb_log(LOG_ERR, "No nVidia or AMD/ATI graphics card found, quitting.\n");
     return (EXIT_FAILURE);
   }
-  struct pci_bus_id *pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_INTEL);
+  struct pci_bus_id *pci_id_igd;
+  pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_INTEL, 0);
   if (!pci_id_igd) {
-    bb_log(LOG_ERR, "No Optimus system detected, quitting.\n");
-    return (EXIT_FAILURE);
+    if (bb_status.card_type == CARD_ATI) {
+      /* assume the first AMD video card to be integrated */
+      pci_id_igd = pci_bus_id_discrete;
+      pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_ATI, 1);
+      if (!pci_bus_id_discrete) {
+        bb_log(LOG_ERR, "No AMD Switchable Graphics detected, quitting.\n");
+        return (EXIT_FAILURE);
+      }
+    } else {
+      bb_log(LOG_ERR, "No Optimus system detected, quitting.\n");
+      return (EXIT_FAILURE);
+    }
   }
   free(pci_id_igd);
 
