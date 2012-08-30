@@ -74,6 +74,116 @@ int pci_get_class(struct pci_bus_id *bus_id) {
 }
 
 /**
+ * Finds the BUS ID of a graphics card just by
+ * specifying that we want the dedicated card or
+ * the integrated one.
+ *
+ * This function will *ONLY* work with exactly *two* graphic cards
+ * correctly. With more graphic cards, it's just a matter of chance,
+ * which card will be picked up as correct.
+ *
+ * @param dedicated A boolean, whether we want dedicated (1) / int. (0)
+ * @return A bus ID struct if a device was found, NULL if no device is found or
+ * no memory could be allocatd
+ */
+struct pci_bus_id *pci_find_gfx_by_kind(unsigned int dedicated) {
+  FILE *fp;
+  char buf[512];
+  unsigned int bus_id_numeric, vendor_device;
+  static struct pci_bus_id graphic_adapters[2];
+  static int initialized = 0;
+  struct pci_bus_id *result;
+
+  result = malloc(sizeof (struct pci_bus_id));
+  if (!result) {
+    return NULL;
+  }
+
+  /* Optimization: We already crawled the whole /proc/bus/pci/devices structure */
+  if (initialized) {
+		bb_log(LOG_INFO, "Calling for pci_find_gfx again, using cache.\n");
+    if (initialized & (1 + dedicated)) {
+      *result = graphic_adapters[dedicated];
+      return result;
+    } else {
+			bb_log(LOG_ERR, "We don't know anything about graphics (%d)\n", dedicated);
+      free(result);
+      return NULL;
+    }
+  }
+  initialized |= 0x1000;
+
+  fp = fopen("/proc/bus/pci/devices", "r");
+  if (!fp) {
+    free(result);
+    return NULL;
+  }
+
+  while (fgets(buf, sizeof(buf) - 1, fp)) {
+    if (sscanf(buf, "%x %x", &bus_id_numeric, &vendor_device) != 2) {
+      continue;
+    }
+    if (vendor_device >> 0x10 == PCI_VENDOR_ID_INTEL) {
+      if (pci_parse_bus_id(result, bus_id_numeric)) {
+        register int pci_class = pci_get_class(result);
+        if (pci_class == PCI_CLASS_DISPLAY_VGA ||
+                pci_class == PCI_CLASS_DISPLAY_3D) {
+          /* We found an intel device.
+           * It *is* the Optimus integrated card.
+           */
+          initialized |= 0x0001;
+          graphic_adapters[0] = *result;
+        }
+      }
+    } else if (vendor_device >> 0x10 == PCI_VENDOR_ID_NVIDIA) {
+      if (pci_parse_bus_id(result, bus_id_numeric)) {
+        register int pci_class = pci_get_class(result);
+        if (pci_class == PCI_CLASS_DISPLAY_VGA ||
+                pci_class == PCI_CLASS_DISPLAY_3D) {
+          /* We found an nVidia card.
+           * If we didn't find any other card before, let us add it
+           * as the dedicated one. There will probably be a matching
+           * Intel card or another nVidia card.
+           * If we already got an nvidia card, add the other one as
+           * integrated.
+           * TODO: Perform some checking about which card gets first.
+           */
+          bb_log(LOG_INFO, "Found nvidia (%04x) card model %04x at bus %d with class %d\n", vendor_device >> 0x10, vendor_device & 0xFFFF, bus_id_numeric, pci_class);
+          if(initialized & 0x0002) {
+            graphic_adapters[0] = *result;
+            initialized |= 0x0001;
+            initialized |= 0x0200; /* Not really Optimus (do we care?) */
+          } else {
+            graphic_adapters[0] = *result;
+            initialized |= 0x0002;
+          }
+        }
+      }
+    }
+  }
+
+  /* TODO: Check if nvidia cards (if more than one) are in the correct
+   * order */
+  if (initialized & 0x0200) {
+    /* Correct order? */
+    /* Assume yes */
+  }
+
+  fclose(fp);
+
+  if (initialized & (1 + dedicated)) {
+    *result = graphic_adapters[dedicated];
+    return result;
+  }
+
+  free(result);
+  return NULL;
+}
+
+
+
+
+/**
  * Finds the Bus ID a graphics card by vendor ID
  * @param vendor_id A numeric vendor ID
  * @return A bus ID struct if a device was found, NULL if no device is found or

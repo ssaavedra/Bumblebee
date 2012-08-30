@@ -458,7 +458,7 @@ int main(int argc, char* argv[]) {
   init_config();
   bbconfig_parse_opts(argc, argv, PARSE_STAGE_PRECONF);
 
-  pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_NVIDIA);
+  pci_bus_id_discrete = pci_find_gfx_by_kind(PCI_DEVICE_DISCRETE);
   if (!pci_bus_id_discrete) {
     bb_log(LOG_ERR, "No nVidia graphics card found, quitting.\n");
     return (EXIT_FAILURE);
@@ -466,7 +466,7 @@ int main(int argc, char* argv[]) {
 
   bb_log(LOG_INFO, "Found card: bus=%d slot=%d func=%d\n", pci_bus_id_discrete->bus, pci_bus_id_discrete->slot, pci_bus_id_discrete->func);
 
-  struct pci_bus_id *pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_INTEL);
+  struct pci_bus_id *pci_id_igd = pci_find_gfx_by_kind(PCI_DEVICE_INTEGRATED);
   if (!pci_id_igd) {
     bb_log(LOG_ERR, "No Optimus system detected. Continuing anyway.\n");
     /* TODO: Check whether we actually have *two* graphic cards! */
