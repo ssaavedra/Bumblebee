@@ -7,7 +7,16 @@ Section "Device"
     Identifier "Device1"
     Driver "nvidia"
     VendorName "NVIDIA Corporation"
+
+#   BusID can be obtained fom `lspci | grep VGA`
+#   and may be needed for configurations with
+#   more than one nvidia card.
+#   BusID "PCI:02:00:0
     Option "NoLogo" "true"
+#   ProbeAllGpus option is needed in a multi-nvidia
+#   card environment due to proprietary driver
+#   trying to allocate twice the DMA buffer
+    Option "ProbeAllCpus" "false"
     Option "UseEDID" "false"
     Option "UseDisplayDevice" "none"
     Option "ConnectedMonitor" "DFP"

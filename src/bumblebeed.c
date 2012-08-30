@@ -463,10 +463,14 @@ int main(int argc, char* argv[]) {
     bb_log(LOG_ERR, "No nVidia graphics card found, quitting.\n");
     return (EXIT_FAILURE);
   }
+
+  bb_log(LOG_INFO, "Found card: bus=%d slot=%d func=%d\n", pci_bus_id_discrete->bus, pci_bus_id_discrete->slot, pci_bus_id_discrete->func);
+
   struct pci_bus_id *pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_INTEL);
   if (!pci_id_igd) {
-    bb_log(LOG_ERR, "No Optimus system detected, quitting.\n");
-    return (EXIT_FAILURE);
+    bb_log(LOG_ERR, "No Optimus system detected. Continuing anyway.\n");
+    /* TODO: Check whether we actually have *two* graphic cards! */
+    /* return (EXIT_FAILURE); */
   }
   free(pci_id_igd);
 
