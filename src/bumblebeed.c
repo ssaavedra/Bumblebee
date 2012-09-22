@@ -468,9 +468,9 @@ int main(int argc, char* argv[]) {
 
   struct pci_bus_id *pci_id_igd = pci_find_gfx_by_kind(PCI_DEVICE_INTEGRATED);
   if (!pci_id_igd) {
-    bb_log(LOG_ERR, "No Optimus system detected. Continuing anyway.\n");
-    /* TODO: Check whether we actually have *two* graphic cards! */
-    /* return (EXIT_FAILURE); */
+    bb_log(LOG_ERR, "No Optimus system detected or anything with two cards. "
+	   "Aborting.\n");
+    return (EXIT_FAILURE);
   }
   free(pci_id_igd);
 
