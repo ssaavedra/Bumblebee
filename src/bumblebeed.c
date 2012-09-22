@@ -458,20 +458,30 @@ int main(int argc, char* argv[]) {
   init_config();
   bbconfig_parse_opts(argc, argv, PARSE_STAGE_PRECONF);
 
-  pci_bus_id_discrete = pci_find_gfx_by_kind(PCI_DEVICE_DISCRETE);
+  /* First look for an intel card */
+  struct pci_bus_id *pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_INTEL, 0);
+  if(!pci_id_igd) {
+    /* This is no Optimus configuration. But maybe it's a
+       dual-nvidia configuration. Let us test that.
+    */
+    pci_id_igd = pci_find_gfx_by_vendor(PCI_VENDOR_ID_NVIDIA, 1);
+    bb_log(LOG_INFO, "No Intel card found, testing for dual-nvidia system.\n");
+    
+    if(!pci_id_igd) {
+      /* Ok, this is not a double gpu setup supported (there is at most
+	 one nvidia and no intel cards */
+      bb_log(LOG_ERR, "No dual card environment found, quitting(.\n");
+      return (EXIT_FAILURE);
+    }
+  }
+  pci_bus_id_discrete = pci_find_gfx_by_vendor(PCI_VENDOR_ID_NVIDIA, 0);
   if (!pci_bus_id_discrete) {
-    bb_log(LOG_ERR, "No nVidia graphics card found, quitting.\n");
+    bb_log(LOG_ERR, "No main nVidia graphics card found, quitting.\n");
     return (EXIT_FAILURE);
   }
 
   bb_log(LOG_INFO, "Found card: bus=%d slot=%d func=%d\n", pci_bus_id_discrete->bus, pci_bus_id_discrete->slot, pci_bus_id_discrete->func);
 
-  struct pci_bus_id *pci_id_igd = pci_find_gfx_by_kind(PCI_DEVICE_INTEGRATED);
-  if (!pci_id_igd) {
-    bb_log(LOG_ERR, "No Optimus system detected or anything with two cards. "
-	   "Aborting.\n");
-    return (EXIT_FAILURE);
-  }
   free(pci_id_igd);
 
   GKeyFile *bbcfg = bbconfig_parse_conf();
