@@ -25,8 +25,6 @@
 #define PCI_VENDOR_ID_INTEL   0x8086
 #define PCI_CLASS_DISPLAY_VGA 0x0300
 #define PCI_CLASS_DISPLAY_3D  0x0302
-#define PCI_DEVICE_DISCRETE   1
-#define PCI_DEVICE_INTEGRATED 0
 
 struct pci_bus_id {
   unsigned char bus; /* 0x00 - 0xFF */
